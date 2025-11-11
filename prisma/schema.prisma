@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                            Int       @id @default(autoincrement())
+  email                         String    @unique
+  username                      String    @unique
+  hashedPassword                String
+  name                          String?
+  lastName                      String?
+  chileanRutNumber              String?
+  color                         String    @default("#7ad9c5")
+  createdAt                     DateTime  @default(now())
+  createdBy                     Int       @default(0)
+  lastLogin                     DateTime?
+  twoFactorSecret               String?
+  twoFactorEnabled              Boolean   @default(false)
+  userEnabledTwoFactor          Boolean   @default(false)
+  twoFactorRecoveryCode         String?
+  twoFactorRecoveryCodeExpires  DateTime?
+  passwordResetCode             String?
+  passwordResetCodeExpires      DateTime?
+  userRoles                     UserRole[]
+}
+
+model Role {
+  id        Int         @id @default(autoincrement())
+  name      String      @unique
+  userRoles UserRole[]
+}
+
+model UserRole {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  roleId Int
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, roleId])
+}
+
+model EmailSender {
+  id            Int           @id @default(autoincrement())
+  email         String        @unique
+  createdAt     DateTime      @default(now())
+}
+
+model Domain {
+  id            Int           @id @default(autoincrement())
+  domain        String        @unique
+  createdAt     DateTime      @default(now())
+}
+
+model Configuration {
+  id                      Int       @id @default(autoincrement())
+  twoFactorEnabled        Boolean   @default(false)
+  appName                 String    @default("PavleTek")
+  recoveryEmailSenderId   Int?
+  updatedAt               DateTime  @updatedAt
+}

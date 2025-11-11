@@ -1,0 +1,9 @@
+node_modules
+# Keep environment variables out of version control
+.env
+# But keep example files tracked
+!.env.example
+!.env.development
+!.env.production
+
+/generated/prisma
