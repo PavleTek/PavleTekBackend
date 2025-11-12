@@ -18,7 +18,7 @@ cp .env.example .env
 ```bash
 npx prisma generate
 npx prisma db push
-npx prisma db seed
+node prisma/seed.js
 ```
 
 4. Start the development server:
