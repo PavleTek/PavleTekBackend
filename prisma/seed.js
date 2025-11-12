@@ -165,7 +165,6 @@ async function main() {
   if (existingUsers.length === userDefinitions.length) {
     console.log(`  - Users already initialized`);
   }
-  console.log(`  - Configuration ${existingConfig ? 'already existed' : 'initialized'}`);
   if (createdUsers.length > 0) {
     console.log('  - Super admin has all roles');
   }
