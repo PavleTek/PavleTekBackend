@@ -70,6 +70,8 @@ model EmailTemplate {
   
   createdById     Int?
   createdBy       User?     @relation(fields: [createdById], references: [id])
+  
+  invoices        Invoice[]
 }
 
 model Domain {
@@ -235,4 +237,7 @@ model Invoice {
   
   createdById     Int?
   createdBy       User?     @relation(fields: [createdById], references: [id])
+  
+  emailTemplateId Int?
+  emailTemplate   EmailTemplate? @relation(fields: [emailTemplateId], references: [id])
 }
