@@ -150,6 +150,108 @@ async function main() {
     console.log(`ℹ️  Users already initialized`);
   }
 
+  // Create countries (check if they exist first)
+  console.log('🌍 Creating countries...');
+  const countryNames = ['Chile', 'USA', 'China'];
+  const countries = [];
+  const createdCountries = [];
+  const existingCountries = [];
+
+  for (const countryName of countryNames) {
+    const existingCountry = await prisma.country.findUnique({
+      where: { name: countryName }
+    });
+
+    if (existingCountry) {
+      countries.push(existingCountry);
+      existingCountries.push(countryName);
+    } else {
+      const newCountry = await prisma.country.create({
+        data: { name: countryName }
+      });
+      countries.push(newCountry);
+      createdCountries.push(countryName);
+      console.log(`  ✅ Country "${countryName}" created`);
+    }
+  }
+
+  if (createdCountries.length > 0) {
+    console.log(`✅ Created ${createdCountries.length} new country(ies): ${createdCountries.join(', ')}`);
+  }
+  if (existingCountries.length === countryNames.length) {
+    console.log(`ℹ️  Countries already initialized`);
+  }
+
+  // Create languages (check if they exist first)
+  console.log('🗣️  Creating languages...');
+  const languageNames = ['Spanish', 'English'];
+  const languages = [];
+  const createdLanguages = [];
+  const existingLanguages = [];
+
+  for (const languageName of languageNames) {
+    const existingLanguage = await prisma.language.findUnique({
+      where: { name: languageName }
+    });
+
+    if (existingLanguage) {
+      languages.push(existingLanguage);
+      existingLanguages.push(languageName);
+    } else {
+      const newLanguage = await prisma.language.create({
+        data: { name: languageName }
+      });
+      languages.push(newLanguage);
+      createdLanguages.push(languageName);
+      console.log(`  ✅ Language "${languageName}" created`);
+    }
+  }
+
+  if (createdLanguages.length > 0) {
+    console.log(`✅ Created ${createdLanguages.length} new language(s): ${createdLanguages.join(', ')}`);
+  }
+  if (existingLanguages.length === languageNames.length) {
+    console.log(`ℹ️  Languages already initialized`);
+  }
+
+  // Create currencies (check if they exist first)
+  console.log('💰 Creating currencies...');
+  const currencyDefinitions = [
+    { name: 'Chilean Peso', abbreviation: 'CLP' },
+    { name: 'US Dollar', abbreviation: 'USD' }
+  ];
+  const currencies = [];
+  const createdCurrencies = [];
+  const existingCurrencies = [];
+
+  for (const currencyDef of currencyDefinitions) {
+    const existingCurrency = await prisma.currency.findUnique({
+      where: { abbreviation: currencyDef.abbreviation }
+    });
+
+    if (existingCurrency) {
+      currencies.push(existingCurrency);
+      existingCurrencies.push(currencyDef.abbreviation);
+    } else {
+      const newCurrency = await prisma.currency.create({
+        data: {
+          name: currencyDef.name,
+          abbreviation: currencyDef.abbreviation
+        }
+      });
+      currencies.push(newCurrency);
+      createdCurrencies.push(currencyDef.abbreviation);
+      console.log(`  ✅ Currency "${currencyDef.abbreviation}" (${currencyDef.name}) created`);
+    }
+  }
+
+  if (createdCurrencies.length > 0) {
+    console.log(`✅ Created ${createdCurrencies.length} new currency(ies): ${createdCurrencies.join(', ')}`);
+  }
+  if (existingCurrencies.length === currencyDefinitions.length) {
+    console.log(`ℹ️  Currencies already initialized`);
+  }
+
   console.log('🎉 Database seeding completed successfully!');
   console.log('\n📋 Summary:');
   if (createdRoles.length > 0) {
@@ -167,6 +269,24 @@ async function main() {
   }
   if (createdUsers.length > 0) {
     console.log('  - Super admin has all roles');
+  }
+  if (createdCountries.length > 0) {
+    console.log(`  - ${createdCountries.length} new country(ies) created`);
+  }
+  if (existingCountries.length === countryNames.length) {
+    console.log(`  - Countries already initialized`);
+  }
+  if (createdLanguages.length > 0) {
+    console.log(`  - ${createdLanguages.length} new language(s) created`);
+  }
+  if (existingLanguages.length === languageNames.length) {
+    console.log(`  - Languages already initialized`);
+  }
+  if (createdCurrencies.length > 0) {
+    console.log(`  - ${createdCurrencies.length} new currency(ies) created`);
+  }
+  if (existingCurrencies.length === currencyDefinitions.length) {
+    console.log(`  - Currencies already initialized`);
   }
 }
 

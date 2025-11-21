@@ -6,6 +6,11 @@ const authRouter = require("./routers/authRouter");
 const adminRouter = require("./routers/adminRouter");
 const emailRouter = require("./routers/emailRouter");
 const domainRouter = require("./routers/domainRouter");
+const mantenedoresRouter = require("./routers/mantenedoresRouter");
+const contactRouter = require("./routers/contactRouter");
+const companyRouter = require("./routers/companyRouter");
+const bankAccountRouter = require("./routers/bankAccountRouter");
+const invoiceRouter = require("./routers/invoiceRouter");
 
 dotenv.config();
 const app = express();
@@ -48,6 +53,11 @@ app.use("/api/auth", authRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/admin", emailRouter);
 app.use("/api/admin", domainRouter);
+app.use("/api/admin", mantenedoresRouter);
+app.use("/api/admin", contactRouter);
+app.use("/api/admin", companyRouter);
+app.use("/api/admin", bankAccountRouter);
+app.use("/api/admin", invoiceRouter);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => console.log(`server running on ${PORT}`));

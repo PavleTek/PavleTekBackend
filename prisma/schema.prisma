@@ -27,6 +27,10 @@ model User {
   passwordResetCode             String?
   passwordResetCodeExpires      DateTime?
   userRoles                     UserRole[]
+  createdContacts               Contact[]
+  createdCompanies              Company[]
+  createdEmailTemplates         EmailTemplate[]
+  createdInvoices               Invoice[]
 }
 
 model Role {
@@ -52,6 +56,22 @@ model EmailSender {
   createdAt     DateTime      @default(now())
 }
 
+model EmailTemplate {
+  id              Int       @id @default(autoincrement())
+  description     String?
+  subject         String?
+  content         String?
+  destinationEmail Json?
+  ccEmail         Json?
+  bccEmail        Json?
+  fromEmail       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  createdById     Int?
+  createdBy       User?     @relation(fields: [createdById], references: [id])
+}
+
 model Domain {
   id            Int           @id @default(autoincrement())
   domain        String        @unique
@@ -64,4 +84,155 @@ model Configuration {
   appName                 String    @default("PavleTek")
   recoveryEmailSenderId   Int?
   updatedAt               DateTime  @updatedAt
+}
+
+model Currency {
+  id          Int       @id @default(autoincrement())
+  name        String
+  abbreviation String    @unique
+  createdAt   DateTime  @default(now())
+  contacts    Contact[]
+  companies   Company[]
+  bankAccounts BankAccount[]
+  invoices    Invoice[]
+}
+
+model Language {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+}
+
+model Country {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+}
+
+model Contact {
+  id                  Int       @id @default(autoincrement())
+  firstName           String?
+  lastName            String?
+  chileanRutNumber    String?
+  phoneNumber         String?
+  email               String?
+  color               String    @default("#7ad9c5")
+  notes               String?
+  taxID               String?
+  roleInCompany       String?
+  address             Json?
+  country             String?
+  language            String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  currencyId          Int?
+  currency            Currency? @relation(fields: [currencyId], references: [id])
+  
+  associatedCompanyId Int?
+  associatedCompany   Company?  @relation("ContactCompany", fields: [associatedCompanyId], references: [id])
+  
+  defaultBankAccountId Int?
+  defaultBankAccount  BankAccount? @relation("ContactDefaultBankAccount", fields: [defaultBankAccountId], references: [id])
+  
+  createdById         Int?
+  createdBy           User?     @relation(fields: [createdById], references: [id])
+  
+  bankAccounts        BankAccount[] @relation("ContactBankAccount")
+  companiesAsDefault   Company[] @relation("CompanyDefaultContact")
+  invoicesFrom        Invoice[] @relation("InvoiceFromContact")
+  invoicesTo          Invoice[] @relation("InvoiceToContact")
+}
+
+model Company {
+  id                  Int       @id @default(autoincrement())
+  displayName         String?
+  legalName           String?
+  taxId               String?
+  website             String?
+  businessType        String?
+  color               String    @default("#7ad9c5")
+  address             Json?
+  country             String?
+  language            String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  currencyId          Int?
+  currency            Currency? @relation(fields: [currencyId], references: [id])
+  
+  defaultContactId    Int?
+  defaultContact      Contact? @relation("CompanyDefaultContact", fields: [defaultContactId], references: [id])
+  
+  createdById         Int?
+  createdBy           User?     @relation(fields: [createdById], references: [id])
+  
+  associatedContacts  Contact[] @relation("ContactCompany")
+  bankAccounts        BankAccount[] @relation("CompanyBankAccount")
+  invoicesFrom        Invoice[] @relation("InvoiceFromCompany")
+  invoicesTo          Invoice[] @relation("InvoiceToCompany")
+}
+
+model BankAccount {
+  id              Int       @id @default(autoincrement())
+  bankName        String?
+  accountHolder   String?
+  accountNumber   String?
+  accountType     String?
+  swiftCode       String?
+  ibanCode        String?
+  routingNumber   String?
+  bankCode        String?
+  branchName      String?
+  email           String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  currencyId      Int?
+  currency        Currency? @relation(fields: [currencyId], references: [id])
+  
+  country         String?
+  
+  ownerContactId  Int?
+  ownerContact    Contact?  @relation("ContactBankAccount", fields: [ownerContactId], references: [id])
+  
+  ownerCompanyId  Int?
+  ownerCompany    Company?  @relation("CompanyBankAccount", fields: [ownerCompanyId], references: [id])
+  
+  contactsAsDefault Contact[] @relation("ContactDefaultBankAccount")
+}
+
+model Invoice {
+  id              Int       @id @default(autoincrement())
+  invoiceNumber   Int       @unique
+  date            DateTime
+  subtotal        Float
+  taxRate         Float
+  taxAmount       Float
+  total           Float
+  isTemplate      Boolean   @default(false)
+  templateName    String?
+  sent            Boolean   @default(false)
+  items           Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  fromCompanyId   Int?
+  fromCompany     Company?  @relation("InvoiceFromCompany", fields: [fromCompanyId], references: [id])
+  
+  fromContactId   Int?
+  fromContact     Contact? @relation("InvoiceFromContact", fields: [fromContactId], references: [id])
+  
+  toCompanyId     Int?
+  toCompany       Company? @relation("InvoiceToCompany", fields: [toCompanyId], references: [id])
+  
+  toContactId     Int?
+  toContact       Contact? @relation("InvoiceToContact", fields: [toContactId], references: [id])
+  
+  currencyId      Int?
+  currency        Currency? @relation(fields: [currencyId], references: [id])
+  
+  createdById     Int?
+  createdBy       User?     @relation(fields: [createdById], references: [id])
 }
