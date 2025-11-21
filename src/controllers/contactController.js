@@ -98,6 +98,42 @@ const createContact = async (req, res) => {
 
     const userId = req.user?.id;
 
+    // Look up country and language names from IDs if provided
+    let countryName = null;
+    let languageName = null;
+
+    if (countryId !== undefined && countryId !== null && countryId !== '') {
+      const countryIdInt = parseInt(countryId);
+      if (!isNaN(countryIdInt) && countryIdInt > 0) {
+        try {
+          const countryRecord = await prisma.country.findUnique({
+            where: { id: countryIdInt },
+          });
+          if (countryRecord) {
+            countryName = countryRecord.name;
+          }
+        } catch (err) {
+          console.error('Error looking up country:', err);
+        }
+      }
+    }
+
+    if (languageId !== undefined && languageId !== null && languageId !== '') {
+      const languageIdInt = parseInt(languageId);
+      if (!isNaN(languageIdInt) && languageIdInt > 0) {
+        try {
+          const languageRecord = await prisma.language.findUnique({
+            where: { id: languageIdInt },
+          });
+          if (languageRecord) {
+            languageName = languageRecord.name;
+          }
+        } catch (err) {
+          console.error('Error looking up language:', err);
+        }
+      }
+    }
+
     const contactData = {
       firstName: firstName || null,
       lastName: lastName || null,
@@ -109,8 +145,8 @@ const createContact = async (req, res) => {
       taxID: taxID || null,
       roleInCompany: roleInCompany || null,
       address: address || null,
-      country: country || null,
-      language: language || null,
+      country: countryName,
+      language: languageName,
       currencyId: currencyId ? parseInt(currencyId) : null,
       associatedCompanyId: associatedCompanyId ? parseInt(associatedCompanyId) : null,
       defaultBankAccountId: defaultBankAccountId ? parseInt(defaultBankAccountId) : null,
@@ -164,8 +200,8 @@ const updateContact = async (req, res) => {
       taxID,
       roleInCompany,
       address,
-      country,
-      language,
+      countryId,
+      languageId,
       currencyId,
       associatedCompanyId,
       defaultBankAccountId,
@@ -196,8 +232,41 @@ const updateContact = async (req, res) => {
     if (taxID !== undefined) updateData.taxID = taxID || null;
     if (roleInCompany !== undefined) updateData.roleInCompany = roleInCompany || null;
     if (address !== undefined) updateData.address = address || null;
-    if (country !== undefined) updateData.country = country || null;
-    if (language !== undefined) updateData.language = language || null;
+    
+    // Handle countryId - look up the country name
+    if (countryId !== undefined) {
+      if (countryId) {
+        const countryIdInt = parseInt(countryId);
+        if (!isNaN(countryIdInt)) {
+          const country = await prisma.country.findUnique({
+            where: { id: countryIdInt },
+          });
+          updateData.country = country ? country.name : null;
+        } else {
+          updateData.country = null;
+        }
+      } else {
+        updateData.country = null;
+      }
+    }
+    
+    // Handle languageId - look up the language name
+    if (languageId !== undefined) {
+      if (languageId) {
+        const languageIdInt = parseInt(languageId);
+        if (!isNaN(languageIdInt)) {
+          const language = await prisma.language.findUnique({
+            where: { id: languageIdInt },
+          });
+          updateData.language = language ? language.name : null;
+        } else {
+          updateData.language = null;
+        }
+      } else {
+        updateData.language = null;
+      }
+    }
+    
     if (currencyId !== undefined) updateData.currencyId = currencyId ? parseInt(currencyId) : null;
     if (associatedCompanyId !== undefined) updateData.associatedCompanyId = associatedCompanyId ? parseInt(associatedCompanyId) : null;
     if (defaultBankAccountId !== undefined) updateData.defaultBankAccountId = defaultBankAccountId ? parseInt(defaultBankAccountId) : null;
