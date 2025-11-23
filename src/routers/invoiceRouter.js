@@ -6,6 +6,7 @@ const {
   updateInvoice,
   deleteInvoice,
   markInvoiceAsSent,
+  getLatestInvoiceNumber,
 } = require('../controllers/invoiceController');
 const { authenticateToken, authenticateRoles } = require('../middleware/authentication');
 
@@ -22,6 +23,9 @@ router.post('/invoices', createInvoice);
 router.put('/invoices/:id', updateInvoice);
 router.delete('/invoices/:id', deleteInvoice);
 router.patch('/invoices/:id/sent', markInvoiceAsSent);
+
+// Invoice number lookup
+router.get('/invoices/latest-number/:toCompanyId', getLatestInvoiceNumber);
 
 module.exports = router;
 

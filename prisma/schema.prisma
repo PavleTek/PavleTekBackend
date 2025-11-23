@@ -61,9 +61,9 @@ model EmailTemplate {
   description     String?
   subject         String?
   content         String?
-  destinationEmail Json?
-  ccEmail         Json?
-  bccEmail        Json?
+  destinationEmail Json?    // Hard-typed emails (array of strings)
+  ccEmail         Json?    // Hard-typed emails (array of strings)
+  bccEmail        Json?    // Hard-typed emails (array of strings)
   fromEmail       String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -72,6 +72,23 @@ model EmailTemplate {
   createdBy       User?     @relation(fields: [createdById], references: [id])
   
   invoices        Invoice[]
+  
+  // Contact relationships
+  contacts       EmailTemplateContact[]
+}
+
+model EmailTemplateContact {
+  id                Int           @id @default(autoincrement())
+  emailTemplateId    Int
+  contactId         Int
+  type              String        // "to", "cc", or "bcc"
+  
+  emailTemplate      EmailTemplate @relation(fields: [emailTemplateId], references: [id], onDelete: Cascade)
+  contact           Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  
+  @@unique([emailTemplateId, contactId, type])
+  @@index([emailTemplateId])
+  @@index([contactId])
 }
 
 model Domain {
@@ -144,6 +161,7 @@ model Contact {
   companiesAsDefault   Company[] @relation("CompanyDefaultContact")
   invoicesFrom        Invoice[] @relation("InvoiceFromContact")
   invoicesTo          Invoice[] @relation("InvoiceToContact")
+  emailTemplateContacts EmailTemplateContact[]
 }
 
 model Company {
@@ -215,6 +233,9 @@ model Invoice {
   total           Float
   isTemplate      Boolean   @default(false)
   templateName    String?
+  name            String?   // Display name for templates
+  description     String?   // Invoice description
+  hasASDocument   Boolean   @default(false)
   sent            Boolean   @default(false)
   items           Json?
   createdAt       DateTime  @default(now())
@@ -240,4 +261,6 @@ model Invoice {
   
   emailTemplateId Int?
   emailTemplate   EmailTemplate? @relation(fields: [emailTemplateId], references: [id])
+  
+  ASDocument      Json?     // Array of { executedBy: string, hours: number, image?: string }
 }

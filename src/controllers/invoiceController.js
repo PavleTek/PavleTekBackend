@@ -1,5 +1,18 @@
 const prisma = require('../lib/prisma');
 
+// Helper function to merge contact emails with hard-typed emails
+const mergeEmails = (hardTypedEmails, contacts, type) => {
+  const hardTyped = Array.isArray(hardTypedEmails) ? hardTypedEmails : [];
+  const contactEmails = contacts
+    .filter(c => c.type === type && c.contact && c.contact.email)
+    .map(c => c.contact.email)
+    .filter(email => email); // Remove null/undefined emails
+  
+  // Combine and deduplicate
+  const allEmails = [...new Set([...hardTyped, ...contactEmails])];
+  return allEmails.length > 0 ? allEmails : null;
+};
+
 // Get all invoices
 const getAllInvoices = async (req, res) => {
   try {
@@ -10,6 +23,22 @@ const getAllInvoices = async (req, res) => {
         toCompany: true,
         toContact: true,
         currency: true,
+        emailTemplate: {
+          include: {
+            contacts: {
+              include: {
+                contact: {
+                  select: {
+                    id: true,
+                    email: true,
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         createdBy: {
           select: {
             id: true,
@@ -24,9 +53,29 @@ const getAllInvoices = async (req, res) => {
       },
     });
 
+    // Merge contact emails with hard-typed emails for each invoice
+    const invoicesWithMergedEmails = invoices.map(invoice => {
+      if (invoice.emailTemplate) {
+        const toContacts = invoice.emailTemplate.contacts.filter(c => c.type === 'to');
+        const ccContacts = invoice.emailTemplate.contacts.filter(c => c.type === 'cc');
+        const bccContacts = invoice.emailTemplate.contacts.filter(c => c.type === 'bcc');
+
+        return {
+          ...invoice,
+          emailTemplate: {
+            ...invoice.emailTemplate,
+            destinationEmail: mergeEmails(invoice.emailTemplate.destinationEmail, toContacts, 'to'),
+            ccEmail: mergeEmails(invoice.emailTemplate.ccEmail, ccContacts, 'cc'),
+            bccEmail: mergeEmails(invoice.emailTemplate.bccEmail, bccContacts, 'bcc'),
+          },
+        };
+      }
+      return invoice;
+    });
+
     res.status(200).json({
       message: 'Invoices retrieved successfully',
-      invoices: invoices,
+      invoices: invoicesWithMergedEmails,
     });
   } catch (error) {
     console.error('Get all invoices error:', error);
@@ -53,6 +102,22 @@ const getInvoiceById = async (req, res) => {
         toCompany: true,
         toContact: true,
         currency: true,
+        emailTemplate: {
+          include: {
+            contacts: {
+              include: {
+                contact: {
+                  select: {
+                    id: true,
+                    email: true,
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         createdBy: {
           select: {
             id: true,
@@ -69,9 +134,27 @@ const getInvoiceById = async (req, res) => {
       return;
     }
 
+    // Merge contact emails with hard-typed emails if emailTemplate exists
+    let invoiceWithMergedEmails = invoice;
+    if (invoice.emailTemplate) {
+      const toContacts = invoice.emailTemplate.contacts.filter(c => c.type === 'to');
+      const ccContacts = invoice.emailTemplate.contacts.filter(c => c.type === 'cc');
+      const bccContacts = invoice.emailTemplate.contacts.filter(c => c.type === 'bcc');
+
+      invoiceWithMergedEmails = {
+        ...invoice,
+        emailTemplate: {
+          ...invoice.emailTemplate,
+          destinationEmail: mergeEmails(invoice.emailTemplate.destinationEmail, toContacts, 'to'),
+          ccEmail: mergeEmails(invoice.emailTemplate.ccEmail, ccContacts, 'cc'),
+          bccEmail: mergeEmails(invoice.emailTemplate.bccEmail, bccContacts, 'bcc'),
+        },
+      };
+    }
+
     res.status(200).json({
       message: 'Invoice retrieved successfully',
-      invoice: invoice,
+      invoice: invoiceWithMergedEmails,
     });
   } catch (error) {
     console.error('Get invoice by ID error:', error);
@@ -91,6 +174,10 @@ const createInvoice = async (req, res) => {
       total,
       isTemplate,
       templateName,
+      name,
+      description,
+      hasASDocument,
+      ASDocument,
       sent,
       items,
       fromCompanyId,
@@ -98,6 +185,7 @@ const createInvoice = async (req, res) => {
       toCompanyId,
       toContactId,
       currencyId,
+      emailTemplateId,
     } = req.body;
 
     const userId = req.user?.id;
@@ -127,6 +215,10 @@ const createInvoice = async (req, res) => {
       total: parseFloat(total),
       isTemplate: isTemplate || false,
       templateName: templateName || null,
+      name: name || null,
+      description: description || null,
+      hasASDocument: hasASDocument || false,
+      ASDocument: ASDocument || null,
       sent: sent || false,
       items: items || null,
       fromCompanyId: fromCompanyId ? parseInt(fromCompanyId) : null,
@@ -134,6 +226,7 @@ const createInvoice = async (req, res) => {
       toCompanyId: toCompanyId ? parseInt(toCompanyId) : null,
       toContactId: toContactId ? parseInt(toContactId) : null,
       currencyId: currencyId ? parseInt(currencyId) : null,
+      emailTemplateId: emailTemplateId ? parseInt(emailTemplateId) : null,
       createdById: userId || null,
     };
 
@@ -145,6 +238,7 @@ const createInvoice = async (req, res) => {
         toCompany: true,
         toContact: true,
         currency: true,
+        emailTemplate: true,
         createdBy: {
           select: {
             id: true,
@@ -184,6 +278,10 @@ const updateInvoice = async (req, res) => {
       total,
       isTemplate,
       templateName,
+      name,
+      description,
+      hasASDocument,
+      ASDocument,
       sent,
       items,
       fromCompanyId,
@@ -191,6 +289,7 @@ const updateInvoice = async (req, res) => {
       toCompanyId,
       toContactId,
       currencyId,
+      emailTemplateId,
     } = req.body;
 
     if (isNaN(invoiceId)) {
@@ -208,17 +307,25 @@ const updateInvoice = async (req, res) => {
     }
 
     const updateData = {};
-    if (invoiceNumber !== undefined) {
+    if (invoiceNumber !== undefined && invoiceNumber !== null) {
       const newInvoiceNumber = parseInt(invoiceNumber);
-      // Check if invoice number already exists (excluding current invoice)
-      const existingInvoice = await prisma.invoice.findUnique({
-        where: { invoiceNumber: newInvoiceNumber },
-      });
-      if (existingInvoice && existingInvoice.id !== invoiceId) {
-        res.status(409).json({ error: 'Invoice with this number already exists' });
-        return;
+      const currentInvoiceNumber = parseInt(currentInvoice.invoiceNumber);
+      
+      // Only check for duplicates if the invoice number is actually changing
+      if (currentInvoiceNumber !== newInvoiceNumber) {
+        // Check if invoice number already exists (excluding current invoice)
+        const existingInvoice = await prisma.invoice.findUnique({
+          where: { invoiceNumber: newInvoiceNumber },
+        });
+        if (existingInvoice && existingInvoice.id !== invoiceId) {
+          res.status(409).json({ error: 'Invoice with this number already exists' });
+          return;
+        }
+        // Only update invoice number if it's different from current
+        updateData.invoiceNumber = newInvoiceNumber;
       }
-      updateData.invoiceNumber = newInvoiceNumber;
+      // If invoice number hasn't changed, don't include it in updateData
+      // This prevents unnecessary updates and potential type coercion issues
     }
     if (date !== undefined) updateData.date = new Date(date);
     if (subtotal !== undefined) updateData.subtotal = parseFloat(subtotal);
@@ -227,6 +334,10 @@ const updateInvoice = async (req, res) => {
     if (total !== undefined) updateData.total = parseFloat(total);
     if (isTemplate !== undefined) updateData.isTemplate = isTemplate;
     if (templateName !== undefined) updateData.templateName = templateName || null;
+    if (name !== undefined) updateData.name = name || null;
+    if (description !== undefined) updateData.description = description || null;
+    if (hasASDocument !== undefined) updateData.hasASDocument = hasASDocument;
+    if (ASDocument !== undefined) updateData.ASDocument = ASDocument || null;
     if (sent !== undefined) updateData.sent = sent;
     if (items !== undefined) updateData.items = items || null;
     if (fromCompanyId !== undefined) updateData.fromCompanyId = fromCompanyId ? parseInt(fromCompanyId) : null;
@@ -234,6 +345,7 @@ const updateInvoice = async (req, res) => {
     if (toCompanyId !== undefined) updateData.toCompanyId = toCompanyId ? parseInt(toCompanyId) : null;
     if (toContactId !== undefined) updateData.toContactId = toContactId ? parseInt(toContactId) : null;
     if (currencyId !== undefined) updateData.currencyId = currencyId ? parseInt(currencyId) : null;
+    if (emailTemplateId !== undefined) updateData.emailTemplateId = emailTemplateId ? parseInt(emailTemplateId) : null;
 
     const updatedInvoice = await prisma.invoice.update({
       where: { id: invoiceId },
@@ -244,6 +356,7 @@ const updateInvoice = async (req, res) => {
         toCompany: true,
         toContact: true,
         currency: true,
+        emailTemplate: true,
         createdBy: {
           select: {
             id: true,
@@ -364,6 +477,40 @@ const markInvoiceAsSent = async (req, res) => {
   }
 };
 
+// Get latest invoice number for a company
+const getLatestInvoiceNumber = async (req, res) => {
+  try {
+    const { toCompanyId } = req.params;
+    const companyId = parseInt(toCompanyId);
+
+    if (isNaN(companyId)) {
+      res.status(400).json({ error: 'Invalid company ID' });
+      return;
+    }
+
+    const latestInvoice = await prisma.invoice.findFirst({
+      where: {
+        toCompanyId: companyId,
+        isTemplate: false, // Only count actual invoices, not templates
+      },
+      orderBy: {
+        invoiceNumber: 'desc',
+      },
+      select: {
+        invoiceNumber: true,
+      },
+    });
+
+    res.status(200).json({
+      message: 'Latest invoice number retrieved successfully',
+      latestInvoiceNumber: latestInvoice?.invoiceNumber || null,
+    });
+  } catch (error) {
+    console.error('Get latest invoice number error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 module.exports = {
   getAllInvoices,
   getInvoiceById,
@@ -371,5 +518,6 @@ module.exports = {
   updateInvoice,
   deleteInvoice,
   markInvoiceAsSent,
+  getLatestInvoiceNumber,
 };
 
