@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "build": "npx prisma generate",
-    "migrate": "npx prisma migrate deploy",
+    "migrate": "npx prisma migrate resolve --rolled-back 20251124102715_remove_reply_to_email 2>/dev/null || true; npx prisma migrate deploy",
     "seed": "node prisma/seed.js",
     "start": "node src/index.js",
     "postinstall": "npm run build"
