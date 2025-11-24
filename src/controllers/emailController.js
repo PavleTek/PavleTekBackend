@@ -294,10 +294,7 @@ const sendTestEmail = async (req, res) => {
 
     const attachments = [];
     if (req.files && req.files.length > 0) {
-      console.log(`📎 Processing ${req.files.length} attachment(s) for email`);
       for (const file of req.files) {
-        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-        console.log(`  - ${file.originalname}: ${fileSizeMB} MB (${file.mimetype})`);
         attachments.push({
           filename: file.originalname,
           content: file.buffer,

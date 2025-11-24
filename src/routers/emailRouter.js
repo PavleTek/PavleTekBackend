@@ -78,15 +78,6 @@ const handleMulterUpload = (uploadMiddleware) => {
         return res.status(400).json({ error: err.message });
       }
       
-      // Log file sizes when upload succeeds
-      if (req.files && req.files.length > 0) {
-        console.log('📎 Files uploaded successfully:');
-        req.files.forEach((file, index) => {
-          const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-          console.log(`  File ${index + 1}: ${file.originalname} - ${fileSizeMB} MB (${file.size} bytes)`);
-        });
-      }
-      
       next();
     });
   };
