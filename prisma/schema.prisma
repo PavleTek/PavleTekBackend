@@ -225,7 +225,7 @@ model BankAccount {
 
 model Invoice {
   id              Int       @id @default(autoincrement())
-  invoiceNumber   Int       @unique
+  invoiceNumber   Int
   date            DateTime
   subtotal        Float
   taxRate         Float

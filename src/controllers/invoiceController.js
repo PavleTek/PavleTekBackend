@@ -196,16 +196,6 @@ const createInvoice = async (req, res) => {
       return;
     }
 
-    // Check if invoice number already exists
-    const existingInvoice = await prisma.invoice.findUnique({
-      where: { invoiceNumber: parseInt(invoiceNumber) },
-    });
-
-    if (existingInvoice) {
-      res.status(409).json({ error: 'Invoice with this number already exists' });
-      return;
-    }
-
     const invoiceData = {
       invoiceNumber: parseInt(invoiceNumber),
       date: new Date(date),
@@ -256,10 +246,6 @@ const createInvoice = async (req, res) => {
     });
   } catch (error) {
     console.error('Create invoice error:', error);
-    if (error.code === 'P2002') {
-      res.status(409).json({ error: 'Invoice with this number already exists' });
-      return;
-    }
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -308,24 +294,7 @@ const updateInvoice = async (req, res) => {
 
     const updateData = {};
     if (invoiceNumber !== undefined && invoiceNumber !== null) {
-      const newInvoiceNumber = parseInt(invoiceNumber);
-      const currentInvoiceNumber = parseInt(currentInvoice.invoiceNumber);
-      
-      // Only check for duplicates if the invoice number is actually changing
-      if (currentInvoiceNumber !== newInvoiceNumber) {
-        // Check if invoice number already exists (excluding current invoice)
-        const existingInvoice = await prisma.invoice.findUnique({
-          where: { invoiceNumber: newInvoiceNumber },
-        });
-        if (existingInvoice && existingInvoice.id !== invoiceId) {
-          res.status(409).json({ error: 'Invoice with this number already exists' });
-          return;
-        }
-        // Only update invoice number if it's different from current
-        updateData.invoiceNumber = newInvoiceNumber;
-      }
-      // If invoice number hasn't changed, don't include it in updateData
-      // This prevents unnecessary updates and potential type coercion issues
+      updateData.invoiceNumber = parseInt(invoiceNumber);
     }
     if (date !== undefined) updateData.date = new Date(date);
     if (subtotal !== undefined) updateData.subtotal = parseFloat(subtotal);
@@ -376,10 +345,6 @@ const updateInvoice = async (req, res) => {
     console.error('Update invoice error:', error);
     if (error.code === 'P2025') {
       res.status(404).json({ error: 'Invoice not found' });
-      return;
-    }
-    if (error.code === 'P2002') {
-      res.status(409).json({ error: 'Invoice with this number already exists' });
       return;
     }
     res.status(500).json({ error: 'Internal server error' });
