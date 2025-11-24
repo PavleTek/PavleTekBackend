@@ -234,7 +234,6 @@ const deleteEmail = async (req, res) => {
 
 // Send test email (debug version)
 const sendTestEmail = async (req, res) => {
-
   try {
     const { fromEmail, toEmails, ccEmails, bccEmails, subject, content } = req.body;
 

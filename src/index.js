@@ -23,16 +23,20 @@ const allowedOrigins = envOrigins
 
 // CORS setup — must be FIRST
 const corsOptions = {
-  origin: (origin, callback) => {
-    if (
-      allowedOrigins.length === 0 || // no origins configured
-      !origin || // non-browser request
-      allowedOrigins.includes(origin)
-    ) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
+  // origin: (origin, callback) => {
+  //   if (
+  //     allowedOrigins.length === 0 || // no origins configured
+  //     !origin || // non-browser request
+  //     allowedOrigins.includes(origin)
+  //   ) {
+  //     callback(null, true);
+  //   } else {
+  //     callback(new Error("Not allowed by CORS"));
+  //   }
+  // },
+  origin: (_, callback) => {
+    callback(null, true)
+    return
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -41,7 +45,9 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
+// Increase body parser limit to handle large image payloads (10MB)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 app.get("/", (req, res) => {
   res.writeHead(200, { "Content-Type": "text/plain" });
