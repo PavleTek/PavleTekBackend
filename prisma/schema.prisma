@@ -31,6 +31,7 @@ model User {
   createdCompanies              Company[]
   createdEmailTemplates         EmailTemplate[]
   createdInvoices               Invoice[]
+  createdCalendarEvents         CalendarEvent[]
 }
 
 model Role {
@@ -263,4 +264,34 @@ model Invoice {
   emailTemplate   EmailTemplate? @relation(fields: [emailTemplateId], references: [id])
   
   ASDocument      Json?     // Array of { executedBy: string, hours: number, image?: string }
+
+  invoicePdfR2Key   String?   // R2 object key for the invoice PDF
+  asPdfR2Key        String?   // R2 object key for the AS document PDF
+  documentsGeneratedAt DateTime? // When PDFs were last generated/uploaded
+
+  scheduledSendAt    DateTime? // UTC timestamp for when the email should be sent
+  scheduledStatus    String?   // "pending" | "sent" | "failed" | "cancelled"
+  scheduledEmailData Json?    // { fromEmail, toEmails, ccEmails, bccEmails, subject, content }
+  scheduledSentAt    DateTime? // UTC timestamp when the cron job sent the email
+  scheduledError     String?   // Error message if scheduled send failed
+}
+
+model CalendarEvent {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  timestamp   DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  createdById Int?
+  createdBy   User?     @relation(fields: [createdById], references: [id])
+}
+
+model CalendarColorConfig {
+  id             Int      @id @default(autoincrement())
+  colorStartDate DateTime
+  colorOne       String   @default("#ef4444")
+  colorTwo       String   @default("#22c55e")
+  updatedAt      DateTime @updatedAt
 }

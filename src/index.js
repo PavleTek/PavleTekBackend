@@ -2,6 +2,9 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 
+const { startScheduler, stopScheduler } = require("./scheduler");
+const prisma = require("./lib/prisma");
+
 const authRouter = require("./routers/authRouter");
 const adminRouter = require("./routers/adminRouter");
 const emailRouter = require("./routers/emailRouter");
@@ -11,6 +14,7 @@ const contactRouter = require("./routers/contactRouter");
 const companyRouter = require("./routers/companyRouter");
 const bankAccountRouter = require("./routers/bankAccountRouter");
 const invoiceRouter = require("./routers/invoiceRouter");
+const calendarRouter = require("./routers/calendarRouter");
 
 dotenv.config();
 const app = express();
@@ -64,6 +68,30 @@ app.use("/api/admin", contactRouter);
 app.use("/api/admin", companyRouter);
 app.use("/api/admin", bankAccountRouter);
 app.use("/api/admin", invoiceRouter);
+app.use("/api/admin", calendarRouter);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0", () => console.log(`server running on ${PORT}`));
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(`server running on ${PORT}`);
+  startScheduler();
+});
+
+function shutdown() {
+  console.log("Shutting down...");
+  stopScheduler();
+  server.close(() => {
+    prisma
+      .$disconnect()
+      .then(() => {
+        console.log("Disconnected from database. Goodbye.");
+        process.exit(0);
+      })
+      .catch((err) => {
+        console.error("Error disconnecting:", err);
+        process.exit(1);
+      });
+  });
+}
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
