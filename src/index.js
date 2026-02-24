@@ -15,6 +15,7 @@ const companyRouter = require("./routers/companyRouter");
 const bankAccountRouter = require("./routers/bankAccountRouter");
 const invoiceRouter = require("./routers/invoiceRouter");
 const calendarRouter = require("./routers/calendarRouter");
+const strideDocRouter = require("./routers/strideDocRouter");
 
 dotenv.config();
 const app = express();
@@ -49,9 +50,9 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-// Increase body parser limit to handle large image payloads (10MB)
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+// Increase body parser limit to handle large payloads (100MB)
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 app.get("/", (req, res) => {
   res.writeHead(200, { "Content-Type": "text/plain" });
@@ -69,6 +70,7 @@ app.use("/api/admin", companyRouter);
 app.use("/api/admin", bankAccountRouter);
 app.use("/api/admin", invoiceRouter);
 app.use("/api/admin", calendarRouter);
+app.use("/api/admin", strideDocRouter);
 
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, "0.0.0.0", () => {

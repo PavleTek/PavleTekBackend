@@ -8,35 +8,50 @@ datasource db {
 }
 
 model User {
-  id                            Int       @id @default(autoincrement())
-  email                         String    @unique
-  username                      String    @unique
-  hashedPassword                String
-  name                          String?
-  lastName                      String?
-  chileanRutNumber              String?
-  color                         String    @default("#7ad9c5")
-  createdAt                     DateTime  @default(now())
-  createdBy                     Int       @default(0)
-  lastLogin                     DateTime?
-  twoFactorSecret               String?
-  twoFactorEnabled              Boolean   @default(false)
-  userEnabledTwoFactor          Boolean   @default(false)
-  twoFactorRecoveryCode         String?
-  twoFactorRecoveryCodeExpires  DateTime?
-  passwordResetCode             String?
-  passwordResetCodeExpires      DateTime?
-  userRoles                     UserRole[]
-  createdContacts               Contact[]
-  createdCompanies              Company[]
-  createdEmailTemplates         EmailTemplate[]
-  createdInvoices               Invoice[]
-  createdCalendarEvents         CalendarEvent[]
+  id                           Int             @id @default(autoincrement())
+  email                        String          @unique
+  username                     String          @unique
+  hashedPassword               String
+  name                         String?
+  lastName                     String?
+  chileanRutNumber             String?
+  color                        String          @default("#7ad9c5")
+  createdAt                    DateTime        @default(now())
+  createdBy                    Int             @default(0)
+  lastLogin                    DateTime?
+  twoFactorEnabled             Boolean         @default(false)
+  twoFactorSecret              String?
+  twoFactorRecoveryCode        String?
+  twoFactorRecoveryCodeExpires DateTime?
+  passwordResetCode            String?
+  passwordResetCodeExpires     DateTime?
+  userEnabledTwoFactor         Boolean         @default(false)
+  createdCalendarEvents        CalendarEvent[]
+  createdCompanies             Company[]
+  createdContacts              Contact[]
+  createdEmailTemplates        EmailTemplate[]
+  createdInvoices              Invoice[]
+  createdStrideDocuments       StrideDocument[]
+  userRoles                    UserRole[]
+}
+
+model StrideDocument {
+  id           Int      @id @default(autoincrement())
+  name         String
+  mdR2Key      String?
+  pdfR2Key     String?
+  mdFileSize   Int?
+  pdfFileSize  Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdById  Int?
+  createdBy    User?    @relation(fields: [createdById], references: [id])
 }
 
 model Role {
-  id        Int         @id @default(autoincrement())
-  name      String      @unique
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
   userRoles UserRole[]
 }
 
@@ -44,248 +59,217 @@ model UserRole {
   id     Int  @id @default(autoincrement())
   userId Int
   roleId Int
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, roleId])
 }
 
 model EmailSender {
-  id            Int           @id @default(autoincrement())
-  email         String        @unique
-  createdAt     DateTime      @default(now())
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  createdAt DateTime @default(now())
 }
 
 model EmailTemplate {
-  id              Int       @id @default(autoincrement())
-  description     String?
-  subject         String?
-  content         String?
-  destinationEmail Json?    // Hard-typed emails (array of strings)
-  ccEmail         Json?    // Hard-typed emails (array of strings)
-  bccEmail        Json?    // Hard-typed emails (array of strings)
-  fromEmail       String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
-  createdById     Int?
-  createdBy       User?     @relation(fields: [createdById], references: [id])
-  
-  invoices        Invoice[]
-  
-  // Contact relationships
-  contacts       EmailTemplateContact[]
+  id               Int                    @id @default(autoincrement())
+  description      String?
+  subject          String?
+  content          String?
+  destinationEmail Json?
+  ccEmail          Json?
+  bccEmail         Json?
+  fromEmail        String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  createdById      Int?
+  createdBy        User?                  @relation(fields: [createdById], references: [id])
+  contacts         EmailTemplateContact[]
+  invoices         Invoice[]
 }
 
 model EmailTemplateContact {
-  id                Int           @id @default(autoincrement())
-  emailTemplateId    Int
-  contactId         Int
-  type              String        // "to", "cc", or "bcc"
-  
-  emailTemplate      EmailTemplate @relation(fields: [emailTemplateId], references: [id], onDelete: Cascade)
-  contact           Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  
+  id              Int           @id @default(autoincrement())
+  emailTemplateId Int
+  contactId       Int
+  type            String
+  contact         Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  emailTemplate   EmailTemplate @relation(fields: [emailTemplateId], references: [id], onDelete: Cascade)
+
   @@unique([emailTemplateId, contactId, type])
   @@index([emailTemplateId])
   @@index([contactId])
 }
 
 model Domain {
-  id            Int           @id @default(autoincrement())
-  domain        String        @unique
-  createdAt     DateTime      @default(now())
+  id        Int      @id @default(autoincrement())
+  domain    String   @unique
+  createdAt DateTime @default(now())
 }
 
 model Configuration {
-  id                      Int       @id @default(autoincrement())
-  twoFactorEnabled        Boolean   @default(false)
-  appName                 String    @default("PavleTek")
-  recoveryEmailSenderId   Int?
-  updatedAt               DateTime  @updatedAt
+  id                    Int      @id @default(autoincrement())
+  twoFactorEnabled      Boolean  @default(false)
+  updatedAt             DateTime @updatedAt
+  appName               String   @default("PavleTek")
+  recoveryEmailSenderId Int?
 }
 
 model Currency {
-  id          Int       @id @default(autoincrement())
-  name        String
-  abbreviation String    @unique
-  createdAt   DateTime  @default(now())
-  contacts    Contact[]
-  companies   Company[]
+  id           Int           @id @default(autoincrement())
+  name         String
+  abbreviation String        @unique
+  createdAt    DateTime      @default(now())
   bankAccounts BankAccount[]
-  invoices    Invoice[]
+  companies    Company[]
+  contacts     Contact[]
+  invoices     Invoice[]
 }
 
 model Language {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique
-  createdAt DateTime  @default(now())
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
 }
 
 model Country {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique
-  createdAt DateTime  @default(now())
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
 }
 
 model Contact {
-  id                  Int       @id @default(autoincrement())
-  firstName           String?
-  lastName            String?
-  chileanRutNumber    String?
-  phoneNumber         String?
-  email               String?
-  color               String    @default("#7ad9c5")
-  notes               String?
-  taxID               String?
-  roleInCompany       String?
-  address             Json?
-  country             String?
-  language            String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  
-  currencyId          Int?
-  currency            Currency? @relation(fields: [currencyId], references: [id])
-  
-  associatedCompanyId Int?
-  associatedCompany   Company?  @relation("ContactCompany", fields: [associatedCompanyId], references: [id])
-  
-  defaultBankAccountId Int?
-  defaultBankAccount  BankAccount? @relation("ContactDefaultBankAccount", fields: [defaultBankAccountId], references: [id])
-  
-  createdById         Int?
-  createdBy           User?     @relation(fields: [createdById], references: [id])
-  
-  bankAccounts        BankAccount[] @relation("ContactBankAccount")
-  companiesAsDefault   Company[] @relation("CompanyDefaultContact")
-  invoicesFrom        Invoice[] @relation("InvoiceFromContact")
-  invoicesTo          Invoice[] @relation("InvoiceToContact")
+  id                    Int                    @id @default(autoincrement())
+  firstName             String?
+  lastName              String?
+  chileanRutNumber      String?
+  phoneNumber           String?
+  email                 String?
+  color                 String                 @default("#7ad9c5")
+  notes                 String?
+  taxID                 String?
+  roleInCompany         String?
+  address               Json?
+  country               String?
+  language              String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  currencyId            Int?
+  associatedCompanyId   Int?
+  defaultBankAccountId  Int?
+  createdById           Int?
+  bankAccounts          BankAccount[]          @relation("ContactBankAccount")
+  companiesAsDefault    Company[]              @relation("CompanyDefaultContact")
+  associatedCompany     Company?               @relation("ContactCompany", fields: [associatedCompanyId], references: [id])
+  createdBy             User?                  @relation(fields: [createdById], references: [id])
+  currency              Currency?              @relation(fields: [currencyId], references: [id])
+  defaultBankAccount    BankAccount?           @relation("ContactDefaultBankAccount", fields: [defaultBankAccountId], references: [id])
   emailTemplateContacts EmailTemplateContact[]
+  invoicesFrom          Invoice[]              @relation("InvoiceFromContact")
+  invoicesTo            Invoice[]              @relation("InvoiceToContact")
 }
 
 model Company {
-  id                  Int       @id @default(autoincrement())
-  displayName         String?
-  legalName           String?
-  taxId               String?
-  website             String?
-  businessType        String?
-  color               String    @default("#7ad9c5")
-  address             Json?
-  country             String?
-  language            String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  
-  currencyId          Int?
-  currency            Currency? @relation(fields: [currencyId], references: [id])
-  
-  defaultContactId    Int?
-  defaultContact      Contact? @relation("CompanyDefaultContact", fields: [defaultContactId], references: [id])
-  
-  createdById         Int?
-  createdBy           User?     @relation(fields: [createdById], references: [id])
-  
-  associatedContacts  Contact[] @relation("ContactCompany")
-  bankAccounts        BankAccount[] @relation("CompanyBankAccount")
-  invoicesFrom        Invoice[] @relation("InvoiceFromCompany")
-  invoicesTo          Invoice[] @relation("InvoiceToCompany")
+  id                 Int           @id @default(autoincrement())
+  displayName        String?
+  legalName          String?
+  taxId              String?
+  website            String?
+  businessType       String?
+  color              String        @default("#7ad9c5")
+  address            Json?
+  country            String?
+  language           String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  currencyId         Int?
+  defaultContactId   Int?
+  createdById        Int?
+  bankAccounts       BankAccount[] @relation("CompanyBankAccount")
+  createdBy          User?         @relation(fields: [createdById], references: [id])
+  currency           Currency?     @relation(fields: [currencyId], references: [id])
+  defaultContact     Contact?      @relation("CompanyDefaultContact", fields: [defaultContactId], references: [id])
+  associatedContacts Contact[]     @relation("ContactCompany")
+  invoicesFrom       Invoice[]     @relation("InvoiceFromCompany")
+  invoicesTo         Invoice[]     @relation("InvoiceToCompany")
 }
 
 model BankAccount {
-  id              Int       @id @default(autoincrement())
-  bankName        String?
-  accountHolder   String?
-  accountNumber   String?
-  accountType     String?
-  swiftCode       String?
-  ibanCode        String?
-  routingNumber   String?
-  bankCode        String?
-  branchName      String?
-  email           String?
-  notes           String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
-  currencyId      Int?
-  currency        Currency? @relation(fields: [currencyId], references: [id])
-  
-  country         String?
-  
-  ownerContactId  Int?
-  ownerContact    Contact?  @relation("ContactBankAccount", fields: [ownerContactId], references: [id])
-  
-  ownerCompanyId  Int?
-  ownerCompany    Company?  @relation("CompanyBankAccount", fields: [ownerCompanyId], references: [id])
-  
+  id                Int       @id @default(autoincrement())
+  bankName          String?
+  accountHolder     String?
+  accountNumber     String?
+  accountType       String?
+  swiftCode         String?
+  ibanCode          String?
+  routingNumber     String?
+  bankCode          String?
+  branchName        String?
+  email             String?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  currencyId        Int?
+  country           String?
+  ownerContactId    Int?
+  ownerCompanyId    Int?
+  currency          Currency? @relation(fields: [currencyId], references: [id])
+  ownerCompany      Company?  @relation("CompanyBankAccount", fields: [ownerCompanyId], references: [id])
+  ownerContact      Contact?  @relation("ContactBankAccount", fields: [ownerContactId], references: [id])
   contactsAsDefault Contact[] @relation("ContactDefaultBankAccount")
 }
 
 model Invoice {
-  id              Int       @id @default(autoincrement())
-  invoiceNumber   Int
-  date            DateTime
-  subtotal        Float
-  taxRate         Float
-  taxAmount       Float
-  total           Float
-  isTemplate      Boolean   @default(false)
-  templateName    String?
-  name            String?   // Display name for templates
-  description     String?   // Invoice description
-  hasASDocument   Boolean   @default(false)
-  sent            Boolean   @default(false)
-  items           Json?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  
-  fromCompanyId   Int?
-  fromCompany     Company?  @relation("InvoiceFromCompany", fields: [fromCompanyId], references: [id])
-  
-  fromContactId   Int?
-  fromContact     Contact? @relation("InvoiceFromContact", fields: [fromContactId], references: [id])
-  
-  toCompanyId     Int?
-  toCompany       Company? @relation("InvoiceToCompany", fields: [toCompanyId], references: [id])
-  
-  toContactId     Int?
-  toContact       Contact? @relation("InvoiceToContact", fields: [toContactId], references: [id])
-  
-  currencyId      Int?
-  currency        Currency? @relation(fields: [currencyId], references: [id])
-  
-  createdById     Int?
-  createdBy       User?     @relation(fields: [createdById], references: [id])
-  
-  emailTemplateId Int?
-  emailTemplate   EmailTemplate? @relation(fields: [emailTemplateId], references: [id])
-  
-  ASDocument      Json?     // Array of { executedBy: string, hours: number, image?: string }
-
-  invoicePdfR2Key   String?   // R2 object key for the invoice PDF
-  asPdfR2Key        String?   // R2 object key for the AS document PDF
-  documentsGeneratedAt DateTime? // When PDFs were last generated/uploaded
-
-  scheduledSendAt    DateTime? // UTC timestamp for when the email should be sent
-  scheduledStatus    String?   // "pending" | "sent" | "failed" | "cancelled"
-  scheduledEmailData Json?    // { fromEmail, toEmails, ccEmails, bccEmails, subject, content }
-  scheduledSentAt    DateTime? // UTC timestamp when the cron job sent the email
-  scheduledError     String?   // Error message if scheduled send failed
+  id                   Int            @id @default(autoincrement())
+  invoiceNumber        Int
+  date                 DateTime
+  subtotal             Float
+  taxRate              Float
+  taxAmount            Float
+  total                Float
+  isTemplate           Boolean        @default(false)
+  templateName         String?
+  sent                 Boolean        @default(false)
+  items                Json?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  fromCompanyId        Int?
+  fromContactId        Int?
+  toCompanyId          Int?
+  toContactId          Int?
+  currencyId           Int?
+  createdById          Int?
+  emailTemplateId      Int?
+  name                 String?
+  description          String?
+  hasASDocument        Boolean        @default(false)
+  ASDocument           Json?
+  asPdfR2Key           String?
+  documentsGeneratedAt DateTime?
+  invoicePdfR2Key      String?
+  scheduledEmailData   Json?
+  scheduledError       String?
+  scheduledSendAt      DateTime?
+  scheduledSentAt      DateTime?
+  scheduledStatus      String?
+  createdBy            User?          @relation(fields: [createdById], references: [id])
+  currency             Currency?      @relation(fields: [currencyId], references: [id])
+  emailTemplate        EmailTemplate? @relation(fields: [emailTemplateId], references: [id])
+  fromCompany          Company?       @relation("InvoiceFromCompany", fields: [fromCompanyId], references: [id])
+  fromContact          Contact?       @relation("InvoiceFromContact", fields: [fromContactId], references: [id])
+  toCompany            Company?       @relation("InvoiceToCompany", fields: [toCompanyId], references: [id])
+  toContact            Contact?       @relation("InvoiceToContact", fields: [toContactId], references: [id])
 }
 
 model CalendarEvent {
-  id          Int       @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   title       String
   description String?
   timestamp   DateTime
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   createdById Int?
-  createdBy   User?     @relation(fields: [createdById], references: [id])
+  createdBy   User?    @relation(fields: [createdById], references: [id])
 }
 
 model CalendarColorConfig {
