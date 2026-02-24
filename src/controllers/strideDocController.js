@@ -1,5 +1,27 @@
 const prisma = require('../lib/prisma');
 const r2Service = require('../services/r2Service');
+const pdfService = require('../services/pdfService');
+
+/**
+ * Generate a PDF on-demand from markdown content
+ */
+const generatePdf = async (req, res) => {
+  try {
+    const { markdownContent, colors, fontSize } = req.body;
+
+    if (!markdownContent || !colors || !fontSize) {
+      return res.status(400).json({ error: 'Markdown content, colors, and font size are required' });
+    }
+
+    const pdfBuffer = await pdfService.generatePdfFromMarkdown(markdownContent, colors, fontSize);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+};
 
 /**
  * Get all Stride documents
@@ -31,15 +53,11 @@ const getAllDocuments = async (req, res) => {
  */
 const createDocument = async (req, res) => {
   try {
-    const { name } = req.body;
-    const mdFile = req.files['mdFile'] ? req.files['mdFile'][0] : null;
-    const pdfFile = req.files['pdfFile'] ? req.files['pdfFile'][0] : null;
+    const { name, markdownContent, colors, fontSize } = req.body;
 
-    if (!name || !mdFile || !pdfFile) {
-      return res.status(400).json({ error: 'Name, markdown file, and PDF file are required' });
+    if (!name || !markdownContent || !colors || !fontSize) {
+      return res.status(400).json({ error: 'Name, markdown content, colors, and font size are required' });
     }
-
-    console.log(`Saving document "${name}". MD size: ${(mdFile.size / 1024).toFixed(2)}KB, PDF size: ${(pdfFile.size / 1024 / 1024).toFixed(2)}MB`);
 
     // 1. Create DB row first to get the ID
     const document = await prisma.strideDocument.create({
@@ -56,20 +74,28 @@ const createDocument = async (req, res) => {
     const mdKey = `strideDoc/${docId}/${sanitizedName}.md`;
     const pdfKey = `strideDoc/${docId}/${sanitizedName}.pdf`;
 
-    // 3. Upload to R2
-    await Promise.all([
-      r2Service.uploadFile(mdKey, mdFile.buffer, mdFile.mimetype),
-      r2Service.uploadFile(pdfKey, pdfFile.buffer, pdfFile.mimetype)
+    // 3. Generate PDF and MD buffers
+    const [pdfBuffer, mdBuffer] = await Promise.all([
+      pdfService.generatePdfFromMarkdown(markdownContent, colors, fontSize),
+      Buffer.from(markdownContent, 'utf-8')
     ]);
 
-    // 4. Update DB row with keys and sizes
+    console.log(`Saving document "${name}". MD size: ${(mdBuffer.length / 1024).toFixed(2)}KB, PDF size: ${(pdfBuffer.length / 1024 / 1024).toFixed(2)}MB`);
+
+    // 4. Upload to R2
+    await Promise.all([
+      r2Service.uploadFile(mdKey, mdBuffer, 'text/markdown'),
+      r2Service.uploadFile(pdfKey, pdfBuffer, 'application/pdf')
+    ]);
+
+    // 5. Update DB row with keys and sizes
     const updatedDocument = await prisma.strideDocument.update({
       where: { id: docId },
       data: {
         mdR2Key: mdKey,
         pdfR2Key: pdfKey,
-        mdFileSize: mdFile.size,
-        pdfFileSize: pdfFile.size,
+        mdFileSize: mdBuffer.length,
+        pdfFileSize: pdfBuffer.length,
       },
     });
 
@@ -167,5 +193,6 @@ module.exports = {
   getAllDocuments,
   createDocument,
   downloadFile,
-  deleteDocument
+  deleteDocument,
+  generatePdf
 };
