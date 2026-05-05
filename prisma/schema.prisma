@@ -108,11 +108,13 @@ model Domain {
 }
 
 model Configuration {
-  id                    Int      @id @default(autoincrement())
-  twoFactorEnabled      Boolean  @default(false)
-  updatedAt             DateTime @updatedAt
-  appName               String   @default("PavleTek")
-  recoveryEmailSenderId Int?
+  id                         Int      @id @default(autoincrement())
+  twoFactorEnabled           Boolean  @default(false)
+  updatedAt                  DateTime @updatedAt
+  appName                    String   @default("PavleTek")
+  recoveryEmailSenderId      Int?
+  inquiriesNotificationEmail String?
+  notificationEmailSenderId  Int?
 }
 
 model Currency {
@@ -252,6 +254,10 @@ model Invoice {
   scheduledSendAt      DateTime?
   scheduledSentAt      DateTime?
   scheduledStatus      String?
+  platformUploadAt          DateTime?
+  platformUploadError       String?
+  platformUploadStatus      String?
+  platformUploadScheduledAt DateTime?
   createdBy            User?          @relation(fields: [createdById], references: [id])
   currency             Currency?      @relation(fields: [currencyId], references: [id])
   emailTemplate        EmailTemplate? @relation(fields: [emailTemplateId], references: [id])

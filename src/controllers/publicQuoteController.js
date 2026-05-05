@@ -1,5 +1,6 @@
 const prisma = require('../lib/prisma');
 const r2Service = require('../services/r2Service');
+const { sendQuoteInquiryNotification, sendMeetingRequestNotification } = require('../services/notificationEmailService');
 
 // Simple in-memory rate limiter: max 10 requests per IP per hour
 const rateLimitStore = new Map();
@@ -88,8 +89,8 @@ async function createQuoteInquiry(req, res) {
     notes,
   } = payload;
 
-  // Basic required field validation
-  if (!fullName || !email || !projectName || !description || !goals) {
+  // Required: identity + reachability only (project scope fields optional)
+  if (!fullName || !email) {
     return res.status(400).json({ error: 'Missing required fields.' });
   }
 
@@ -111,9 +112,9 @@ async function createQuoteInquiry(req, res) {
         contactTime: contactTime || null,
         projectType: projectType || 'new_build',
         projectCategory: projectCategory || 'web',
-        projectName,
-        description,
-        goals,
+        projectName: typeof projectName === 'string' ? projectName.trim() : '',
+        description: typeof description === 'string' ? description.trim() : '',
+        goals: typeof goals === 'string' ? goals.trim() : '',
         users: users || null,
         metrics: metrics || null,
         keyFeatures: Array.isArray(keyFeatures) ? keyFeatures : [],
@@ -178,6 +179,11 @@ async function createQuoteInquiry(req, res) {
     }
   }
 
+  // Send notification email (fire and forget)
+  sendQuoteInquiryNotification(inquiry, files).catch((err) => {
+    console.error('[notify] Failed to send quote inquiry notification:', err);
+  });
+
   return res.status(201).json({ id: inquiry.id });
 }
 
@@ -215,6 +221,11 @@ async function createMeetingRequest(req, res) {
         ipAddress: ip,
         userAgent: req.get('user-agent') || null,
       },
+    });
+
+    // Send notification email (fire and forget)
+    sendMeetingRequestNotification(request).catch((err) => {
+      console.error('[notify] Failed to send meeting request notification:', err);
     });
 
     return res.status(201).json({ id: request.id });

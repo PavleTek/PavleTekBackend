@@ -1,4 +1,5 @@
 const prisma = require('../lib/prisma');
+const { sendQuoteInquiryNotification } = require('../services/notificationEmailService');
 
 // Get system configuration
 const getConfig = async (req, res) => {
@@ -36,6 +37,18 @@ const getConfig = async (req, res) => {
       });
     }
 
+    // Get notification email sender details if set
+    let notificationEmailSender = null;
+    if (config.notificationEmailSenderId) {
+      notificationEmailSender = await prisma.emailSender.findUnique({
+        where: { id: config.notificationEmailSenderId },
+        select: {
+          id: true,
+          email: true
+        }
+      });
+    }
+
     res.status(200).json({
       message: 'Configuration retrieved successfully',
       config: {
@@ -44,6 +57,9 @@ const getConfig = async (req, res) => {
         appName: config.appName || 'Application',
         recoveryEmailSenderId: config.recoveryEmailSenderId,
         recoveryEmailSender: recoveryEmailSender,
+        inquiriesNotificationEmail: config.inquiriesNotificationEmail,
+        notificationEmailSenderId: config.notificationEmailSenderId,
+        notificationEmailSender: notificationEmailSender,
         updatedAt: config.updatedAt
       }
     });
@@ -58,7 +74,13 @@ const getConfig = async (req, res) => {
 // are NEVER modified when system 2FA is toggled. Users keep their 2FA configuration.
 const updateConfig = async (req, res) => {
   try {
-    const { twoFactorEnabled, appName, recoveryEmailSenderId } = req.body;
+    const { 
+      twoFactorEnabled, 
+      appName, 
+      recoveryEmailSenderId,
+      inquiriesNotificationEmail,
+      notificationEmailSenderId
+    } = req.body;
 
     // Validate twoFactorEnabled if provided
     if (twoFactorEnabled !== undefined && typeof twoFactorEnabled !== 'boolean') {
@@ -98,6 +120,37 @@ const updateConfig = async (req, res) => {
       }
     }
 
+    // Validate inquiriesNotificationEmail if provided
+    if (inquiriesNotificationEmail !== undefined) {
+      if (inquiriesNotificationEmail !== null && inquiriesNotificationEmail.trim() !== '') {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(inquiriesNotificationEmail.trim())) {
+          res.status(400).json({ error: 'inquiriesNotificationEmail must be a valid email address' });
+          return;
+        }
+      }
+    }
+
+    // Validate notificationEmailSenderId if provided
+    if (notificationEmailSenderId !== undefined) {
+      if (notificationEmailSenderId !== null && (typeof notificationEmailSenderId !== 'number' || isNaN(notificationEmailSenderId))) {
+        res.status(400).json({ error: 'notificationEmailSenderId must be a number or null' });
+        return;
+      }
+
+      // If setting a notification email sender, verify it exists
+      if (notificationEmailSenderId !== null) {
+        const emailSender = await prisma.emailSender.findUnique({
+          where: { id: notificationEmailSenderId }
+        });
+
+        if (!emailSender) {
+          res.status(404).json({ error: 'Notification email sender not found' });
+          return;
+        }
+      }
+    }
+
     // If trying to enable 2FA, check if at least one email sender exists
     if (twoFactorEnabled === true) {
       const emailSenderCount = await prisma.emailSender.count();
@@ -122,6 +175,12 @@ const updateConfig = async (req, res) => {
     }
     if (recoveryEmailSenderId !== undefined) {
       updateData.recoveryEmailSenderId = recoveryEmailSenderId;
+    }
+    if (inquiriesNotificationEmail !== undefined) {
+      updateData.inquiriesNotificationEmail = inquiriesNotificationEmail ? inquiriesNotificationEmail.trim() : null;
+    }
+    if (notificationEmailSenderId !== undefined) {
+      updateData.notificationEmailSenderId = notificationEmailSenderId;
     }
 
     // If enabling 2FA and recovery email is not set, auto-set it to first available email
@@ -150,7 +209,9 @@ const updateConfig = async (req, res) => {
         data: {
           twoFactorEnabled: twoFactorEnabled !== undefined ? twoFactorEnabled : false,
           appName: appName !== undefined ? appName.trim() : 'Application',
-          recoveryEmailSenderId: updateData.recoveryEmailSenderId
+          recoveryEmailSenderId: updateData.recoveryEmailSenderId,
+          inquiriesNotificationEmail: updateData.inquiriesNotificationEmail,
+          notificationEmailSenderId: updateData.notificationEmailSenderId
         }
       });
     } else {
@@ -172,6 +233,18 @@ const updateConfig = async (req, res) => {
       });
     }
 
+    // Get notification email sender details if set
+    let notificationEmailSender = null;
+    if (config.notificationEmailSenderId) {
+      notificationEmailSender = await prisma.emailSender.findUnique({
+        where: { id: config.notificationEmailSenderId },
+        select: {
+          id: true,
+          email: true
+        }
+      });
+    }
+
     res.status(200).json({
       message: 'Configuration updated successfully',
       config: {
@@ -180,6 +253,9 @@ const updateConfig = async (req, res) => {
         appName: config.appName || 'Application',
         recoveryEmailSenderId: config.recoveryEmailSenderId,
         recoveryEmailSender: recoveryEmailSender,
+        inquiriesNotificationEmail: config.inquiriesNotificationEmail,
+        notificationEmailSenderId: config.notificationEmailSenderId,
+        notificationEmailSender: notificationEmailSender,
         updatedAt: config.updatedAt
       }
     });
@@ -189,8 +265,38 @@ const updateConfig = async (req, res) => {
   }
 };
 
+// Send a test notification email
+const sendNotificationTestEmail = async (req, res) => {
+  try {
+    // Create a dummy inquiry payload for testing
+    const dummyInquiry = {
+      id: 'test-id',
+      projectName: 'Test Project',
+      fullName: 'Test User',
+      email: 'test@example.com',
+      company: 'Test Company',
+      projectType: 'new_build',
+      budgetRange: '5k_15k',
+      createdAt: new Date().toISOString()
+    };
+
+    const result = await sendQuoteInquiryNotification(dummyInquiry, []);
+
+    if (!result) {
+      res.status(400).json({ error: 'Notification settings are not fully configured' });
+      return;
+    }
+
+    res.status(200).json({ message: 'Test notification email sent successfully' });
+  } catch (error) {
+    console.error('Send notification test error:', error);
+    res.status(500).json({ error: error.message || 'Failed to send test notification' });
+  }
+};
+
 module.exports = {
   getConfig,
-  updateConfig
+  updateConfig,
+  sendNotificationTestEmail
 };
 

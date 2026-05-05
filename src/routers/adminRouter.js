@@ -13,7 +13,7 @@ const {
   updateRole,
   deleteRole
 } = require('../controllers/adminController');
-const { getConfig, updateConfig } = require('../controllers/configController');
+const { getConfig, updateConfig, sendNotificationTestEmail } = require('../controllers/configController');
 const { authenticateToken, authenticateRoles } = require('../middleware/authentication');
 
 const router = express.Router();
@@ -41,6 +41,7 @@ router.delete('/roles/:id', deleteRole);
 // Configuration routes
 router.get('/config', getConfig);
 router.put('/config', updateConfig);
+router.post('/config/notification-test', sendNotificationTestEmail);
 
 module.exports = router;
 
