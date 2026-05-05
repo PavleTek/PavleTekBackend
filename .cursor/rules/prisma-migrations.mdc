@@ -1,0 +1,47 @@
+---
+description: Prisma schema changes in this backend MUST go through `prisma migrate dev`, never `db push`.
+globs: prisma/**/*
+alwaysApply: true
+---
+
+# Prisma migrations are mandatory in PavleTekBackend
+
+Any change to `prisma/schema.prisma` or the database structure MUST be applied via:
+
+```bash
+npx prisma migrate dev --name describe_your_change
+```
+
+**NEVER run `npx prisma db push` against this project's database**, even for "quick" experiments or prototyping.
+
+## Why this rule exists
+
+Production deploys run `npx prisma migrate deploy`, which only executes committed migration files. If you used `db push` locally and never created a migration, production and all other environments will silently miss the new columns/tables and the app will fail at runtime.
+
+## Required workflow for schema changes
+
+1. Edit `prisma/schema.prisma`.
+2. Run `npx prisma migrate dev --name describe_your_change` (e.g. `add_quote_inquiries`).
+3. Commit the generated `prisma/migrations/<timestamp>_<name>/migration.sql` together with the updated `schema.prisma`.
+
+## Pre-push enforcement
+
+The `.husky/pre-push` hook automatically runs:
+
+- `npx prisma validate` — syntax check on schema.prisma
+- `npx prisma generate` — verifies the generator compiles
+- `node scripts/check-prisma-migration.js` — fails the push if schema.prisma was changed without a paired new migration directory
+
+If the hook rejects your push, create the migration first, then push.
+
+## When `db push` IS allowed
+
+Only when the user **explicitly asks** for it (e.g. for a throwaway local branch experiment that will never be merged). Never as a substitute for `migrate dev` in feature branches.
+
+## Summary
+
+| Action | Command |
+|---|---|
+| Schema change | `npx prisma migrate dev --name <name>` |
+| Deploy / production | `npx prisma migrate deploy` (already in `npm run migrate`) |
+| `db push` | Only on explicit user request; never as default |

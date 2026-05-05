@@ -6,6 +6,7 @@ const { startScheduler, stopScheduler } = require("./scheduler");
 const prisma = require("./lib/prisma");
 
 const authRouter = require("./routers/authRouter");
+const publicRouter = require("./routers/publicRouter");
 const adminRouter = require("./routers/adminRouter");
 const emailRouter = require("./routers/emailRouter");
 const domainRouter = require("./routers/domainRouter");
@@ -16,6 +17,8 @@ const bankAccountRouter = require("./routers/bankAccountRouter");
 const invoiceRouter = require("./routers/invoiceRouter");
 const calendarRouter = require("./routers/calendarRouter");
 const strideDocRouter = require("./routers/strideDocRouter");
+const quoteInquiryRouter = require("./routers/quoteInquiryRouter");
+const meetingRequestRouter = require("./routers/meetingRequestRouter");
 
 dotenv.config();
 const app = express();
@@ -61,6 +64,7 @@ app.get("/", (req, res) => {
 
 // Routers after CORS
 app.use("/api/auth", authRouter);
+app.use("/api/public", publicRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/admin", emailRouter);
 app.use("/api/admin", domainRouter);
@@ -71,6 +75,8 @@ app.use("/api/admin", bankAccountRouter);
 app.use("/api/admin", invoiceRouter);
 app.use("/api/admin", calendarRouter);
 app.use("/api/admin", strideDocRouter);
+app.use("/api/admin", quoteInquiryRouter);
+app.use("/api/admin", meetingRequestRouter);
 
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, "0.0.0.0", () => {

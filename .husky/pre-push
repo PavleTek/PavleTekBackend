@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+set -e
+
+echo "[pre-push] Validating Prisma schema..."
+npx prisma validate
+
+echo "[pre-push] Generating Prisma client (catches generator errors)..."
+npx prisma generate
+
+echo "[pre-push] Checking for schema-without-migration drift..."
+node scripts/check-prisma-migration.js
+
+echo "[pre-push] All checks passed."

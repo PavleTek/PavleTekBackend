@@ -279,3 +279,81 @@ model CalendarColorConfig {
   colorTwo       String   @default("#22c55e")
   updatedAt      DateTime @updatedAt
 }
+
+model QuoteInquiry {
+  id              String            @id @default(cuid())
+  status          String            @default("new")
+  fullName        String
+  company         String?
+  role            String?
+  email           String
+  phone           String?
+  timezone        String?
+  contactMethod   String
+  contactTime     String?
+  projectType     String
+  projectCategory String
+  projectName     String
+  description     String            @db.Text
+  goals           String            @db.Text
+  users           String?           @db.Text
+  metrics         String?           @db.Text
+  keyFeatures     Json
+  technologyIds   Json
+  startDate       String?
+  endDate         String?
+  urgency         String
+  deadlineHard    Boolean           @default(false)
+  budgetRange     String
+  fundingSource   String?
+  engineerCount   Int?
+  seniorityJunior Int               @default(0)
+  seniorityMid    Int               @default(0)
+  senioritySenior Int               @default(0)
+  seniorityLead   Int               @default(0)
+  requiredSkills  String?
+  repoUrl         String?
+  currentStack    String?           @db.Text
+  painPoints      String?           @db.Text
+  ndaRequested    Boolean           @default(false)
+  referral        String?
+  notes           String?           @db.Text
+  adminNotes      String?           @db.Text
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  attachments     QuoteAttachment[]
+
+  @@index([createdAt])
+  @@index([status])
+}
+
+model QuoteAttachment {
+  id          String       @id @default(cuid())
+  inquiryId   String
+  inquiry     QuoteInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  fileName    String
+  contentType String
+  size        Int
+  r2Key       String       @unique
+  createdAt   DateTime     @default(now())
+
+  @@index([inquiryId])
+}
+
+model MeetingRequest {
+  id         String   @id @default(cuid())
+  status     String   @default("new")
+  fullName   String
+  email      String
+  message    String?  @db.Text
+  adminNotes String?  @db.Text
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([status])
+}
