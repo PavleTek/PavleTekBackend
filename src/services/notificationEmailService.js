@@ -1,6 +1,29 @@
 const prisma = require("../lib/prisma");
 const { sendEmail } = require("./emailService");
 
+/** Trim trailing slash; empty uses fallback. */
+function originOrFallback(raw, fallback) {
+  const s = raw != null && String(raw).trim() ? String(raw).trim() : "";
+  if (!s) return fallback.replace(/\/$/, "");
+  return s.replace(/\/$/, "");
+}
+
+/** Logo + static assets in notification HTML (landing site). */
+function getLandingPageUrl() {
+  return originOrFallback(
+    process.env.LandingPageURL || process.env.LANDING_PAGE_ORIGIN,
+    "https://pavletek.com"
+  );
+}
+
+/** CTA links open the admin dashboard (PavleTekFront). */
+function getAdminPageUrl() {
+  return originOrFallback(
+    process.env.AdminPageURL || process.env.ADMIN_URL,
+    "http://localhost:5174"
+  );
+}
+
 /**
  * Loads the notification configuration from the database.
  * Returns null if notifications are disabled or misconfigured.
@@ -41,7 +64,7 @@ async function loadNotificationConfig() {
  * Generates the common HTML wrapper for notification emails.
  */
 function getHtmlWrapper(content, title, ctaLink, ctaText) {
-  const landingPageUrl = process.env.LANDING_PAGE_ORIGIN || 'https://pavletek.com';
+  const landingPageUrl = getLandingPageUrl();
   
   return `
     <!DOCTYPE html>
@@ -172,7 +195,7 @@ async function sendQuoteInquiryNotification(inquiry, attachments = []) {
   const config = await loadNotificationConfig();
   if (!config) return;
 
-  const adminUrl = process.env.ADMIN_URL || 'http://localhost:5173';
+  const adminUrl = getAdminPageUrl();
   const ctaLink = `${adminUrl}/submissions?tab=inquiries&id=${inquiry.id}`;
 
   const projectNameDisplay =
@@ -243,7 +266,7 @@ async function sendMeetingRequestNotification(request) {
   const config = await loadNotificationConfig();
   if (!config) return;
 
-  const adminUrl = process.env.ADMIN_URL || 'http://localhost:5173';
+  const adminUrl = getAdminPageUrl();
   const ctaLink = `${adminUrl}/submissions?tab=meetings&id=${request.id}`;
 
   const fieldsHtml = `
